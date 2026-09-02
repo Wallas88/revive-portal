@@ -1,42 +1,74 @@
 # Revive Portal
 
-A small, production-minded client project portal designed and built by Waldo Trytsman. It gives clients one calm place to see progress, milestones, next actions, and project messages.
+A focused full-stack client workspace designed and built by Waldo Trytsman. It gives a client one calm place to follow project progress, review milestones, see the next action, and leave feedback.
 
-## What it proves
+This repository is a working vertical slice rather than a static dashboard mockup. The React interface talks to an Express API backed by SQLite, with authentication and project-level authorization enforced on the server.
 
-- Responsive React interface with purposeful product design
-- Express API with structured JSON responses
+## What it demonstrates
+
+- Responsive React interface built around a real client workflow
+- Express 5 API with structured JSON responses and same-origin production serving
 - SQLite persistence using Node's built-in database driver
-- Password hashing with `scrypt` and hashed bearer sessions
-- Per-project access control, input validation, rate limiting, and security headers
+- Password hashing with `scrypt`
+- Random bearer tokens with only token hashes stored in the database
+- Session expiry, logout invalidation, and protected routes
+- Per-project access control for client and admin roles
+- Zod request validation, request-size limits, rate limiting, and Helmet headers
 - API integration tests using Node's native test runner
-- One-process production serving after the Vite build
+
+## Architecture
+
+```text
+React client
+    │  same-origin /api requests
+    ▼
+Express API
+    ├── authentication and authorization
+    ├── validation and security headers
+    └── SQLite persistence
+```
+
+The browser keeps the raw session token in `sessionStorage`. The API stores a SHA-256 hash of that token, checks its expiry on every protected request, and filters projects by the authenticated user before returning data.
 
 ## Run locally
 
-Requires Node 24+ and pnpm.
+Requires Node.js 24 or newer and pnpm.
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-Open `http://127.0.0.1:5177`.
+Open `http://127.0.0.1:5177`. The API runs at `http://127.0.0.1:4180` and Vite proxies `/api` requests during development.
 
 Demo account:
 
 ```text
-client@demo.local
-revive-demo
+Email:    client@demo.local
+Password: revive-demo
 ```
 
-The API runs at `http://127.0.0.1:4180`. Demo data is created locally in `data/` and is excluded from Git.
+The local SQLite database is created inside `data/`, which is excluded from Git.
 
-## Verify
+## Verify the build
 
 ```bash
 pnpm check
 ```
+
+This runs the API integration suite followed by a production Vite build. The tests cover health checks, anonymous access, login, project retrieval, feedback creation, cross-client isolation, input validation, and logout invalidation.
+
+## API surface
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/health` | Service health check |
+| `POST` | `/api/auth/login` | Authenticate and create a session |
+| `DELETE` | `/api/auth/session` | Revoke the current session |
+| `GET` | `/api/me` | Restore the authenticated user |
+| `GET` | `/api/projects` | List projects available to the user |
+| `GET` | `/api/projects/:id` | Read one project with milestones and messages |
+| `POST` | `/api/projects/:id/messages` | Add validated project feedback |
 
 ## Production
 
@@ -45,15 +77,27 @@ pnpm build
 pnpm start
 ```
 
-Set `SEED_DEMO=false` outside a portfolio demonstration and provision users through an administrative workflow before using real client data. Copy `.env.example` to `.env` and adjust the database path and session duration for the deployment environment.
+The production process serves both the built React client and the API. It listens on `0.0.0.0` by default in production so a hosting platform can route traffic to it; `PORT`, `HOST`, `DATABASE_PATH`, `SESSION_HOURS`, and `SEED_DEMO` are configurable through the environment.
 
-## Structure
+Before using real client data:
+
+1. Set `SEED_DEMO=false`.
+2. Use a persistent volume for `DATABASE_PATH`.
+3. Provision users through a controlled administrative workflow.
+4. Put the service behind HTTPS and the hosting platform's trusted proxy.
+5. Replace the in-memory login limiter if the application runs across multiple instances.
+
+## Project structure
 
 ```text
-client/    React UI and API client
-server/    HTTP API, auth, schema, and persistence
-test/      Integration tests
+client/    React interface and API client
+server/    Express API, authentication, schema, and persistence
+test/      API integration tests
+public/    Static browser assets
 data/      Local SQLite database (ignored)
 ```
 
-This is intentionally a focused vertical slice. File storage, password recovery, email notifications, audit history, and an admin workspace belong in a later release rather than being faked in the first one.
+## Scope
+
+The current release deliberately focuses on the core client journey. File storage, password recovery, email notifications, audit history, and an administrative workspace are documented future work—not simulated features presented as complete.
+
