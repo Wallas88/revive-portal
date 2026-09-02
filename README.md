@@ -4,6 +4,10 @@ A focused full-stack client workspace designed and built by Waldo Trytsman. It g
 
 This repository is a working vertical slice rather than a static dashboard mockup. The React interface talks to an Express API backed by SQLite, with authentication and project-level authorization enforced on the server.
 
+**Live demo:** [revive-portal.onrender.com](https://revive-portal.onrender.com/)
+
+Use `client@demo.local` with password `revive-demo`. The free demo service may take a short moment to wake after a period of inactivity.
+
 ## What it demonstrates
 
 - Responsive React interface built around a real client workflow
