@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: revive-portal
+    runtime: node
+    plan: free
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: SEED_DEMO
+        value: true
+      - key: SESSION_HOURS
+        value: 12
