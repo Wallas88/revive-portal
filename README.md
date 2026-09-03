@@ -1,12 +1,14 @@
 # Revive Portal
 
-A focused full-stack client workspace designed and built by Waldo Trytsman. It gives a client one calm place to follow project progress, review milestones, see the next action, and leave feedback.
+A working full-stack client workspace demo by Waldo Trytsman, built as part of developing backend and database skills alongside front-end development. It demonstrates a client journey for following project progress, reviewing milestones, and leaving feedback.
 
 This repository is a working vertical slice rather than a static dashboard mockup. The React interface talks to an Express API backed by SQLite, with authentication and project-level authorization enforced on the server.
 
 **Live demo:** [revive-portal.onrender.com](https://revive-portal.onrender.com/)
 
 Use `client@demo.local` with password `revive-demo`. The free demo service may take a short moment to wake after a period of inactivity.
+
+This is a shared sample account, not a private client workspace. Do not enter personal, confidential, or real client information. The current free hosting setup uses temporary local storage: messages and sessions can reset when the service sleeps, restarts, or redeploys.
 
 ## What it demonstrates
 
@@ -83,7 +85,7 @@ pnpm start
 
 The production process serves both the built React client and the API. It listens on `0.0.0.0` by default in production so a hosting platform can route traffic to it; `PORT`, `HOST`, `DATABASE_PATH`, `SESSION_HOURS`, and `SEED_DEMO` are configurable through the environment.
 
-Before using real client data:
+This demo is not yet ready for real client data. The following is a starting checklist, not a security certification:
 
 1. Set `SEED_DEMO=false`.
 2. Use a persistent volume for `DATABASE_PATH`.
