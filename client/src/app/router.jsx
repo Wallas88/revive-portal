@@ -7,6 +7,7 @@ import LoginPage from '../features/auth/LoginPage.jsx'
 import InvitePage from '../features/auth/InvitePage.jsx'
 import ForgotPasswordPage from '../features/auth/ForgotPasswordPage.jsx'
 import ResetPasswordPage from '../features/auth/ResetPasswordPage.jsx'
+import SetupPage from '../features/auth/SetupPage.jsx'
 import DashboardPage from '../features/dashboard/DashboardPage.jsx'
 import ProjectPage from '../features/projects/ProjectPage.jsx'
 import OverviewTab from '../features/projects/OverviewTab.jsx'
@@ -43,6 +44,7 @@ export const router = createBrowserRouter([
       ] },
       { path: '/invite/:token', element: <InvitePage /> },
       { path: '/reset/:token', element: <ResetPasswordPage /> },
+      { element: <PublicOnly />, children: [{ path: '/setup', element: <SetupPage /> }] },
     ],
   },
   {

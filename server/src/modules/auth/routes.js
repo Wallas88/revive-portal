@@ -30,6 +30,18 @@ export function authRoutes(deps) {
       res.json({ user })
     })
 
+  // First-run setup (hosts without a shell). GET says whether it is open;
+  // POST creates the first admin and signs them in.
+  router.get('/setup', (_req, res) => res.json({ available: service.setupAvailable() }))
+  router.post('/setup',
+    rateLimit({ windowMs: 15 * 60_000, max: 8 }),
+    validateRequest({ body: z.object({ token: z.string().min(1).max(200), name: z.string().trim().min(2).max(80), email: emailField, password: password.min(12, 'Use at least 12 characters.') }) }),
+    (req, res) => {
+      const { user, session } = service.setupAdmin(req.body)
+      setSessionCookie(res, session)
+      res.status(201).json({ user })
+    })
+
   router.delete('/session', authenticate, (req, res) => {
     service.logout(req.sessionId, req.user.id)
     clearSessionCookie(res)
