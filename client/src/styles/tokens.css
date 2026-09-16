@@ -1,0 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Unbounded:wght@500;600&display=swap');
+
+/* Palette and type: dark green ground, warm cream ink, lime and gold accents. */
+:root { --night:#050b09; --deep:#07110d; --panel:#0b1712; --panel-soft:#0e1d16; --ink:#edf6e5; --muted:#93a59a; --line:rgba(207,255,126,.15); --acid:#baff42; --gold:#ffd45b; --display:'Unbounded',system-ui,sans-serif; --body:'Manrope',system-ui,sans-serif; --mono:'DM Mono',monospace; }

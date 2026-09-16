@@ -2,12 +2,26 @@ services:
   - type: web
     name: revive-portal
     runtime: node
-    plan: free
+    plan: starter            # a persistent disk needs a paid instance; free resets on every deploy
     buildCommand: pnpm install --frozen-lockfile && pnpm build
     startCommand: pnpm start
     healthCheckPath: /api/health
+    disk:
+      name: revive-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
-      - key: SEED_DEMO
-        value: true
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_PATH
+        value: /var/data/revive-portal.db
+      - key: UPLOAD_DIR
+        value: /var/data/uploads
       - key: SESSION_HOURS
         value: 12
+      - key: APP_URL
+        value: https://revive-portal.onrender.com
+      - key: EMAIL_FROM
+        value: Revive Portal <portal@siterevivesa.com>
+      - key: RESEND_API_KEY
+        sync: false          # set in the dashboard; optional
