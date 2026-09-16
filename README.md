@@ -1,109 +1,75 @@
 # Revive Portal
 
-A working full-stack client workspace demo by Waldo Trytsman, built as part of developing backend and database skills alongside front-end development. It demonstrates a client journey for following project progress, reviewing milestones, and leaving feedback.
+The client portal behind SiteReviveSA projects: clients follow their website
+build, review deliverables, approve or request changes, talk in one channel
+and pick up shared files. Waldo runs it from an admin workspace.
 
-This repository is a working vertical slice rather than a static dashboard mockup. The React interface talks to an Express API backed by SQLite, with authentication and project-level authorization enforced on the server.
+**Live:** https://revive-portal.onrender.com/
 
-**Live demo:** [revive-portal.onrender.com](https://revive-portal.onrender.com/)
+## What it does
 
-Use `client@demo.local` with password `revive-demo`. The free demo service may take a short moment to wake after a period of inactivity.
+- **Admin (Waldo):** create clients and invite their people; create projects
+  and give access; keep milestones and progress current; share previews and
+  files; ask for a decision on an exact version of a deliverable; see every
+  outstanding decision in one queue.
+- **Client:** sign in through an invitation; see only the projects they were
+  given; read updates and milestones; review a deliverable; approve or
+  request changes with feedback; message and download shared files.
 
-This is a shared sample account, not a private client workspace. Do not enter personal, confidential, or real client information. The current free hosting setup uses temporary local storage: messages and sessions can reset when the service sleeps, restarts, or redeploys.
-
-## What it demonstrates
-
-- Responsive React interface built around a real client workflow
-- Express 5 API with structured JSON responses and same-origin production serving
-- SQLite persistence using Node's built-in database driver
-- Password hashing with `scrypt`
-- Random bearer tokens with only token hashes stored in the database
-- Session expiry, logout invalidation, and protected routes
-- Per-project access control for client and admin roles
-- Zod request validation, request-size limits, rate limiting, and Helmet headers
-- API integration tests using Node's native test runner
+Approvals point at a specific `deliverable_versions` row. A new version never
+inherits an earlier decision; who decided what, and when, is kept as history.
 
 ## Architecture
 
-```text
-React client
-    │  same-origin /api requests
-    ▼
-Express API
-    ├── authentication and authorization
-    ├── validation and security headers
-    └── SQLite persistence
+React 19 + Vite (`client/src`) talking to Express 5 (`server/src`) over a
+same-origin JSON API, SQLite through `node:sqlite`. No ORM, no build step
+for the server.
+
+```
+client/src/
+  app/            App.jsx, router.jsx (react-router)
+  layouts/        AuthLayout, PortalLayout
+  features/       auth, dashboard, projects, milestones, approvals, messages, files, admin
+  components/ui/  shared states, fields, tabs, panel
+  lib/            api.js (fetch + CSRF), format.js
+  styles/         tokens.css, global.css, ui.css
+server/src/
+  app.js          wiring; server.js entry
+  config/env.js   every environment variable, validated once
+  middleware/     cookies, csrf, authenticate, requireAdmin, validateRequest, rateLimit, errorHandler
+  modules/        auth, clients, projects, milestones, deliverables, messages, files
+                  (routes → service/queries where the module warrants it)
+  db/             connection.js, migrate.js, migrations/*.sql
+  services/       audit.js, email.js, storage.js
+  scripts/        admin-create, seed-demo, migrate
+server/tests/integration/
 ```
 
-The browser keeps the raw session token in `sessionStorage`. The API stores a SHA-256 hash of that token, checks its expiry on every protected request, and filters projects by the authenticated user before returning data.
+Security in one paragraph: httpOnly cookie sessions stored server-side and
+revocable; CSRF double-submit on every write; every project read/write —
+including file downloads — is authorized through `project_memberships` (or
+the admin role) on the server; scrypt passwords; single-use expiring
+invitation and reset tokens (hashed at rest); rate-limited auth endpoints;
+uploads allow-listed by type and signature, stored under random keys outside
+any static path; audit trail without message bodies or tokens.
 
-## Run locally
+## Run it
 
-Requires Node.js 24 or newer and pnpm.
+See **SETUP.md** (local, environment, migrations, Render) and **BACKUP.md**.
 
 ```bash
-pnpm install
-pnpm dev
+pnpm install && pnpm admin:create -- --email you@example.com --name "You" && pnpm dev
 ```
 
-Open `http://127.0.0.1:5177`. The API runs at `http://127.0.0.1:4180` and Vite proxies `/api` requests during development.
+## Not done yet
 
-Demo account:
+Reported honestly so nobody assumes otherwise:
 
-```text
-Email:    client@demo.local
-Password: revive-demo
-```
-
-The local SQLite database is created inside `data/`, which is excluded from Git.
-
-## Verify the build
-
-```bash
-pnpm check
-```
-
-This runs the API integration suite followed by a production Vite build. The tests cover health checks, anonymous access, login, project retrieval, feedback creation, cross-client isolation, input validation, and logout invalidation.
-
-## API surface
-
-| Method | Route | Purpose |
-| --- | --- | --- |
-| `GET` | `/api/health` | Service health check |
-| `POST` | `/api/auth/login` | Authenticate and create a session |
-| `DELETE` | `/api/auth/session` | Revoke the current session |
-| `GET` | `/api/me` | Restore the authenticated user |
-| `GET` | `/api/projects` | List projects available to the user |
-| `GET` | `/api/projects/:id` | Read one project with milestones and messages |
-| `POST` | `/api/projects/:id/messages` | Add validated project feedback |
-
-## Production
-
-```bash
-pnpm build
-pnpm start
-```
-
-The production process serves both the built React client and the API. It listens on `0.0.0.0` by default in production so a hosting platform can route traffic to it; `PORT`, `HOST`, `DATABASE_PATH`, `SESSION_HOURS`, and `SEED_DEMO` are configurable through the environment.
-
-This demo is not yet ready for real client data. The following is a starting checklist, not a security certification:
-
-1. Set `SEED_DEMO=false`.
-2. Use a persistent volume for `DATABASE_PATH`.
-3. Provision users through a controlled administrative workflow.
-4. Put the service behind HTTPS and the hosting platform's trusted proxy.
-5. Replace the in-memory login limiter if the application runs across multiple instances.
-
-## Project structure
-
-```text
-client/    React interface and API client
-server/    Express API, authentication, schema, and persistence
-test/      API integration tests
-public/    Static browser assets
-data/      Local SQLite database (ignored)
-```
-
-## Scope
-
-The current release deliberately focuses on the core client journey. File storage, password recovery, email notifications, audit history, and an administrative workspace are documented future work—not simulated features presented as complete.
-
+- **Email notifications** on new messages/decisions — the transport exists
+  (`services/email.js`, used for invitations and resets when `RESEND_API_KEY`
+  is set) but nothing else sends yet.
+- **In-portal password change** for a signed-in user (reset by email works).
+- **Object storage** — files live on the service's disk; `services/storage.js`
+  is the seam for R2/S3.
+- **Rate limiting across instances** — in-memory, fine for one process.
+- **Pagination** — messages are capped at 50 per load; activity at 30.
