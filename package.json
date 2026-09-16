@@ -12,7 +12,8 @@
     "build": "vite build",
     "start": "cross-env NODE_ENV=production node server/src/server.js",
     "migrate": "node server/src/scripts/migrate.js",
-    "admin:create": "node server/src/scripts/admin-create.js",
+    "admin:setup": "node server/src/scripts/admin-setup.js",
+    "admin:reset-password": "node server/src/scripts/admin-reset-password.js",
     "seed:demo": "node server/src/scripts/seed-demo.js",
     "test": "node --test \"server/tests/integration/**/*.test.js\"",
     "check": "pnpm test && pnpm build"

@@ -41,7 +41,7 @@ server/src/
                   (routes → service/queries where the module warrants it)
   db/             connection.js, migrate.js, migrations/*.sql
   services/       audit.js, email.js, storage.js
-  scripts/        admin-create, seed-demo, migrate
+  scripts/        admin-setup, admin-reset-password, seed-demo, migrate
 server/tests/integration/
 ```
 
@@ -58,7 +58,7 @@ any static path; audit trail without message bodies or tokens.
 See **SETUP.md** (local, environment, migrations, Render) and **BACKUP.md**.
 
 ```bash
-pnpm install && pnpm admin:create -- --email you@example.com --name "You" && pnpm dev
+pnpm install && pnpm admin:setup && pnpm dev
 ```
 
 ## Not done yet

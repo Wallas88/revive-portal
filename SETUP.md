@@ -7,7 +7,7 @@ Node 24+, pnpm. SQLite through `node:sqlite` (no native build step).
 ```bash
 pnpm install
 cp .env.example .env            # edit if the defaults don't suit
-pnpm admin:create -- --email you@example.com --name "Your Name"   # asks for a password
+pnpm admin:setup                # asks for name, email and a hidden password; runs once
 pnpm dev                        # API on :4180, Vite on :5177 (proxies /api)
 ```
 
@@ -53,8 +53,9 @@ data survives restarts and deploys. First deploy:
 
 1. Create the service from the blueprint; set `RESEND_API_KEY` in the
    dashboard if you want email (optional).
-2. Open a shell on the service and create the admin:
-   `ADMIN_PASSWORD='…' pnpm admin:create -- --email you@… --name "…"`
+2. Open a shell on the service and run `pnpm admin:setup` (interactive; it
+   refuses to run if an admin already exists - `pnpm admin:reset-password`
+   changes the password later).
 3. Sign in at `APP_URL`, create the first client.
 
 Do not run `seed:demo` in production. There are no demo credentials in the
