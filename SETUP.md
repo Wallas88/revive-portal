@@ -34,6 +34,7 @@ Every variable is read once in `server/src/config/env.js`.
 | `SESSION_HOURS` | `12` | session cookie lifetime |
 | `APP_URL` | `http://127.0.0.1:5177` | public origin used in invitation / reset links |
 | `RESEND_API_KEY` | — | optional; enables emailing invitations and resets |
+| `SETUP_TOKEN` | — | optional; unlocks the one-time `/setup` page while no admin exists |
 | `EMAIL_FROM` | `Revive Portal <portal@siterevivesa.com>` | sender (domain must be verified at the provider) |
 
 ## Migrations
@@ -53,9 +54,15 @@ data survives restarts and deploys. First deploy:
 
 1. Create the service from the blueprint; set `RESEND_API_KEY` in the
    dashboard if you want email (optional).
-2. Open a shell on the service and run `pnpm admin:setup` (interactive; it
-   refuses to run if an admin already exists - `pnpm admin:reset-password`
-   changes the password later).
+2. Create the first admin. With a shell (paid plans): `pnpm admin:setup`.
+   Without one (free plan): set `SETUP_TOKEN` in the environment to a long
+   random secret (`node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`),
+   open `https://<your-host>/setup`, paste the token and fill in the form.
+   The page and its API answer 404 as soon as an admin exists; on the free
+   plan the database resets on every deploy, so the page comes back and the
+   same token works again. `pnpm admin:reset-password` changes the password
+   later where a shell exists; otherwise use "Forgotten your password?" with
+   email configured.
 3. Sign in at `APP_URL`, create the first client.
 
 Do not run `seed:demo` in production. There are no demo credentials in the

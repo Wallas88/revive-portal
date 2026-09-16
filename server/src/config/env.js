@@ -17,6 +17,9 @@ const schema = z.object({
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().default('Revive Portal <portal@siterevivesa.com>'),
   MAX_UPLOAD_MB: z.coerce.number().positive().default(15),
+  // First-run setup over HTTP (for hosts without a shell): while no admin
+  // exists, /setup accepts this secret to create the first admin account.
+  SETUP_TOKEN: z.string().min(16, 'SETUP_TOKEN must be at least 16 characters').optional(),
 })
 
 export function loadEnv(source = process.env) {

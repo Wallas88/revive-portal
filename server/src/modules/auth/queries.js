@@ -2,6 +2,8 @@
 export function authQueries(db) {
   return {
     userByEmail: (email) => db.prepare('SELECT * FROM users WHERE email = ? COLLATE NOCASE').get(email),
+    adminExists: () => Boolean(db.prepare("SELECT 1 FROM users WHERE role = 'admin' LIMIT 1").get()),
+    insertAdmin: ({ name, email, passwordHash }) => db.prepare("INSERT INTO users (name, email, password_hash, role, status) VALUES (?, ?, ?, 'admin', 'active') RETURNING id").get(name, email, passwordHash),
     userById: (id) => db.prepare('SELECT id, name, email, role, status FROM users WHERE id = ?').get(id),
     setPassword: (userId, hash) => db.prepare("UPDATE users SET password_hash = ?, status = 'active' WHERE id = ?").run(hash, userId),
     setName: (userId, name) => db.prepare('UPDATE users SET name = ? WHERE id = ?').run(name, userId),

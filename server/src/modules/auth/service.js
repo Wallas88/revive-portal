@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto'
 import { createToken, hashPassword, hashToken, verifyPassword } from '../../lib/tokens.js'
 import { HttpError, badRequest, unauthorized } from '../../lib/httpError.js'
 import { authQueries } from './queries.js'
@@ -112,6 +113,24 @@ export function authService({ db, env, audit, email }) {
 
     validatePassword(password) {
       if (password.length < 10) throw badRequest('Check the highlighted fields.', { password: 'Use at least 10 characters.' })
+    },
+
+    // First-run setup: open only while there is no admin and a SETUP_TOKEN is
+    // configured. Same 404 for "closed" and "no token" so nothing is revealed.
+    setupAvailable() {
+      return Boolean(env.SETUP_TOKEN) && !q.adminExists()
+    },
+    setupAdmin({ token, name, email: emailAddress, password }) {
+      if (!this.setupAvailable()) throw new HttpError(404, 'Setup is closed.')
+      const expected = Buffer.from(env.SETUP_TOKEN)
+      const given = Buffer.from(String(token || ''))
+      if (given.length !== expected.length || !timingSafeEqual(given, expected)) throw new HttpError(403, 'That setup token is not right.')
+      if (q.userByEmail(emailAddress)) throw badRequest('Check the highlighted fields.', { email: 'That email already has an account.' })
+      const { id } = q.insertAdmin({ name, email: emailAddress.toLowerCase(), passwordHash: hashPassword(password) })
+      const user = q.userById(id)
+      const session = startSession(user)
+      audit.record({ actorId: user.id, action: 'auth.setup', entityType: 'user', entityId: user.id })
+      return { user: publicUser(user), session }
     },
   }
 }

@@ -29,3 +29,5 @@ services:
         value: Revive Portal <portal@siterevivesa.com>
       - key: RESEND_API_KEY
         sync: false          # optional; set in the dashboard when you have one
+      - key: SETUP_TOKEN
+        sync: false          # long random secret; unlocks /setup while no admin exists (free plan has no shell)
