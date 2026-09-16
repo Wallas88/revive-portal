@@ -44,9 +44,12 @@ the next numbered file; never edit one that has been applied anywhere.
 
 ## Production (Render)
 
-`render.yaml` describes it: a Starter web service with a 1 GB disk mounted at
-`/var/data` holding both the database and uploads, so data survives restarts
-and deploys. First deploy:
+`render.yaml` describes it. It ships on the **free** plan, where the database
+and uploads live on the instance's own filesystem and are wiped on every
+deploy — good for trying it, not for a real client. Before the first client:
+switch the instance to Starter, uncomment the disk block and the two
+`/var/data` paths in `render.yaml` (or add the same in the dashboard), and
+data survives restarts and deploys. First deploy:
 
 1. Create the service from the blueprint; set `RESEND_API_KEY` in the
    dashboard if you want email (optional).
