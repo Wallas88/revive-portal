@@ -4,3 +4,7 @@ data/
 .env
 *.local
 .DS_Store
+
+# Working notes for this repo: local only, never on GitHub (22 Sep 2026).
+CLAUDE.md
+DEVELOPMENT.md
