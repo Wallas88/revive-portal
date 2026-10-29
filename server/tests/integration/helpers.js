@@ -8,11 +8,14 @@ import { openDatabase } from '../../src/db/connection.js'
 import { createApp } from '../../src/app.js'
 import { hashPassword } from '../../src/lib/tokens.js'
 
-export async function bootApp({ email } = {}) {
+// createTestStorage(env), when given, replaces the real file storage so a
+// test can make reads or writes fail on purpose.
+export async function bootApp({ email, createTestStorage } = {}) {
   const uploadDir = mkdtempSync(join(tmpdir(), 'rp-uploads-'))
   const env = loadEnv({ NODE_ENV: 'test', UPLOAD_DIR: uploadDir, SESSION_HOURS: '1', APP_URL: 'http://portal.test' })
   const db = openDatabase(':memory:')
-  const app = createApp({ db, env, log: { error: () => {} }, email })
+  const storage = createTestStorage == null ? undefined : createTestStorage(env)
+  const app = createApp({ db, env, log: { error: () => {} }, email, storage })
   const server = await new Promise((resolve) => { const s = app.listen(0, '127.0.0.1', () => resolve(s)) })
   const baseUrl = `http://127.0.0.1:${server.address().port}/api`
   return {

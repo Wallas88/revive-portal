@@ -4,6 +4,7 @@ import { authenticate } from '../../middleware/authenticate.js'
 import { requireAdmin } from '../../middleware/requireAdmin.js'
 import { id, validateRequest } from '../../middleware/validateRequest.js'
 import { badRequest, notFound } from '../../lib/httpError.js'
+import { runInTransaction } from '../../db/transaction.js'
 import { authQueries } from '../auth/queries.js'
 import { authService } from '../auth/service.js'
 import { clientQueries } from './queries.js'
@@ -43,20 +44,24 @@ export function clientRoutes(deps) {
   // is emailed too when a transport is configured.
   router.post('/:clientId/users',
     validateRequest({ params: clientParam, body: z.object({ name: z.string().trim().min(2).max(80), email: z.email().max(254) }) }),
-    async (req, res) => {
+    async function addPersonToClient(req, res) {
       const client = q.get(req.params.clientId)
-      if (!client) throw notFound('Client not found.')
+      if (client == null) throw notFound('Client not found.')
       const existing = q.userByEmail(req.body.email)
-      let userId
-      if (existing) {
+      if (existing != null) {
         if (q.isMember(client.id, existing.id)) throw badRequest('Check the highlighted fields.', { email: 'That person is already on this client.' })
         if (existing.status !== 'invited') throw badRequest('Check the highlighted fields.', { email: 'That email already has an account; add them to a project instead.' })
-        userId = existing.id
-      } else {
-        userId = q.insertUser(req.body).id
       }
-      q.addMembership(client.id, userId)
-      const invitation = auth.createInvitation(userId, req.user.id)
+
+      // User, membership and invitation land together, so a failure never
+      // leaves a person without an invitation. The email goes after the commit.
+      function createPersonWithInvitation() {
+        const personId = existing == null ? q.insertUser(req.body).id : existing.id
+        q.addMembership(client.id, personId)
+        return { userId: personId, invitation: auth.createInvitation(personId, req.user.id) }
+      }
+
+      const { userId, invitation } = runInTransaction(db, createPersonWithInvitation)
       const user = q.userById(userId)
       const emailed = await auth.deliverInvitation(user, invitation)
       audit.record({ actorId: req.user.id, action: 'client.user_added', entityType: 'user', entityId: userId, meta: { clientId: client.id, emailed } })

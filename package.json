@@ -15,7 +15,7 @@
     "admin:setup": "node server/src/scripts/admin-setup.js",
     "admin:reset-password": "node server/src/scripts/admin-reset-password.js",
     "seed:demo": "node server/src/scripts/seed-demo.js",
-    "test": "node --test \"server/tests/integration/**/*.test.js\"",
+    "test": "node --test \"server/tests/**/*.test.js\"",
     "check": "pnpm test && pnpm build"
   },
   "dependencies": {

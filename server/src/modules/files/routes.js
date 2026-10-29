@@ -1,3 +1,4 @@
+import { pipeline } from 'node:stream/promises'
 import { Router } from 'express'
 import multer from 'multer'
 import { z } from 'zod'
@@ -56,7 +57,7 @@ export function fileQueries(db) {
 
 // Mounted at /api/projects/:projectId/files. Members upload and download;
 // only admins delete. Downloads are authorized through the project.
-export function fileRoutes({ db, audit, access, storage, env }) {
+export function fileRoutes({ db, audit, access, storage, env, log }) {
   const q = fileQueries(db)
   const projects = projectQueries(db)
   const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: env.MAX_UPLOAD_MB * 1024 * 1024, files: 1 } })
@@ -72,13 +73,21 @@ export function fileRoutes({ db, audit, access, storage, env }) {
     const key = storage.newKey(req.project.id)
     const { sha256, size } = await storage.save(key, req.file.buffer)
     const name = safeName(req.file.originalname)
-    const { id: fileId } = q.insert({ projectId: req.project.id, uploadedBy: req.user.id, name, key, mimeType, size, sha256 })
+    let fileId
+    try {
+      fileId = q.insert({ projectId: req.project.id, uploadedBy: req.user.id, name, key, mimeType, size, sha256 }).id
+    } catch (error) {
+      // The bytes are on disk but no row points at them: remove them so a
+      // failed upload never leaves an orphan file behind.
+      await storage.remove(key)
+      throw error
+    }
     projects.touch(req.project.id)
     audit.record({ actorId: req.user.id, projectId: req.project.id, action: 'file.uploaded', entityType: 'file', entityId: fileId, meta: { name, size } })
     res.status(201).json({ file: q.list(req.project.id).find((f) => f.id === fileId) })
   })
 
-  router.get('/:fileId/download', validateRequest({ params: params.extend({ fileId: id }) }), (req, res) => {
+  router.get('/:fileId/download', validateRequest({ params: params.extend({ fileId: id }) }), async function downloadFile(req, res) {
     const file = q.get(req.project.id, req.params.fileId)
     if (!file || !storage.exists(file.key)) throw notFound('File not found.')
     res.setHeader('Content-Type', file.mimeType)
@@ -86,7 +95,14 @@ export function fileRoutes({ db, audit, access, storage, env }) {
     res.setHeader('Content-Disposition', `attachment; filename="${safeName(file.name).replace(/"/g, '')}"`)
     res.setHeader('X-Content-Type-Options', 'nosniff')
     res.setHeader('Cache-Control', 'private, no-store')
-    storage.stream(file.key).pipe(res)
+    try {
+      await pipeline(storage.stream(file.key), res)
+    } catch (error) {
+      // A read that fails mid-stream (or a client that hangs up) used to be an
+      // unhandled stream error that could crash the server. pipeline has
+      // already closed the response; record which file and why.
+      log.error(`file download stopped: file ${file.id}, ${error.code ?? error.name}`)
+    }
   })
 
   router.delete('/:fileId', requireAdmin, validateRequest({ params: params.extend({ fileId: id }) }), async (req, res) => {
